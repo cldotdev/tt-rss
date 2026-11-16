@@ -1034,6 +1034,12 @@ class Feeds extends Handler_Protected {
 			}
 			//use feed url as new URL
 			$url = key($feedUrls);
+
+			// $contents still holds the HTML page, which FeedParser below would reject
+			$contents = UrlHelper::fetch(['url' => $url, 'login' => $auth_login, 'pass' => $auth_pass]);
+
+			if (empty($contents))
+				return ["code" => 5, "message" => truncate_string(clean(UrlHelper::$fetch_last_error), 250, '…')];
 		}
 
 		// Don't allow subscribing if the content is invalid
