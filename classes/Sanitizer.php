@@ -253,6 +253,9 @@ class Sanitizer {
 				$entry->setAttribute('allow',
 					'accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen *; gyroscope; picture-in-picture; web-share');
 				$entry->setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox');
+				// The document-wide no-referrer policy in index.php would otherwise send no Referer, and YouTube then
+				// shows an error page (Error 153) instead of the video.
+				$entry->setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 
 				if (self::is_prefix_https() && preg_match('%^http://(.+)%i', ltrim($entry->getAttribute('src')), $matches))
 					$entry->setAttribute('src', 'https://' . $matches[1]);

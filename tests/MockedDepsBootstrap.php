@@ -91,13 +91,19 @@ if (!class_exists('PluginHost')) {
 
 		private static $instance = null;
 
+		/** @var array<int, string> hosts that HOOK_IFRAME_WHITELISTED accepts */
+		public static array $iframe_whitelisted_hosts = [];
+
 		public static function getInstance(): PluginHost {
 			self::$instance ??= new self();
 			return self::$instance;
 		}
 
 		public function run_hooks_until($hook, $check, ...$params) {
-			// Mock: always return false (no plugin handled it)
+			if ($hook === self::HOOK_IFRAME_WHITELISTED)
+				return in_array($params[0], self::$iframe_whitelisted_hosts, true);
+
+			// Mock: no plugin handled any other hook
 			return false;
 		}
 

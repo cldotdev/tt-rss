@@ -14,6 +14,7 @@ final class SanitizerUnitTest extends TestCase {
 	protected function tearDown(): void {
 		// Clean up session after each test
 		$_SESSION = [];
+		PluginHost::$iframe_whitelisted_hosts = [];
 	}
 
 	public function test_sanitize_basic_html(): void {
@@ -223,6 +224,27 @@ final class SanitizerUnitTest extends TestCase {
 		$this->assertNotFalse($result);
 		// Without hasSandbox, iframe should be removed
 		$this->assertStringNotContainsString('<iframe', $result);
+	}
+
+	public function test_sanitize_adds_referrerpolicy_to_whitelisted_iframes(): void {
+		$input = '<iframe src="https://www.youtube.com/embed/abc"></iframe>';
+		$_SESSION['hasSandbox'] = true;
+		PluginHost::$iframe_whitelisted_hosts = ['www.youtube.com'];
+		$result = Sanitizer::sanitize($input);
+
+		$this->assertNotFalse($result);
+		$this->assertStringContainsString('referrerpolicy="strict-origin-when-cross-origin"', $result);
+	}
+
+	public function test_sanitize_does_not_add_referrerpolicy_to_other_iframes(): void {
+		$input = '<iframe src="https://example.com/embed"></iframe>';
+		$_SESSION['hasSandbox'] = true;
+		PluginHost::$iframe_whitelisted_hosts = ['www.youtube.com'];
+		$result = Sanitizer::sanitize($input);
+
+		$this->assertNotFalse($result);
+		$this->assertStringContainsString('<iframe', $result);
+		$this->assertStringNotContainsString('referrerpolicy', $result);
 	}
 
 	public function test_sanitize_video_element(): void {
