@@ -808,6 +808,15 @@ const App = {
          }, 0);
       });
 
+      // Firefox sometimes moves the focus into an iframe without sending blur or focusout to
+      // the parent, so the listener above cannot be the only check.
+      if (!this.is_prefs) {
+         setInterval(() => {
+            if (document.activeElement?.tagName == "IFRAME")
+               this.restoreFocus();
+         }, 250);
+      }
+
       if (this.is_prefs) {
 
          this.setLoadingProgress(70);
