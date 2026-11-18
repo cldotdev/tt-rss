@@ -786,6 +786,19 @@ const App = {
       document.onkeydown = (event) => this.hotkeyHandler(event);
       document.onkeypress = (event) => this.hotkeyHandler(event);
 
+      // Cross-origin embeds can take focus on their own and Firefox does not block it,
+      // after which the hotkeys above no longer receive key events.
+      window.addEventListener("blur", () => {
+         setTimeout(() => {
+            const active = document.activeElement;
+
+            if (active && active.tagName == "IFRAME") {
+               active.blur();
+               window.focus();
+            }
+         }, 0);
+      });
+
       if (this.is_prefs) {
 
          this.setLoadingProgress(70);
