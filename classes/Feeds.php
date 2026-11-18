@@ -1866,7 +1866,7 @@ class Feeds extends Handler_Protected {
 
 		$rv = [];
 
-		if ($row = $sth->fetch()) {
+		while ($row = $sth->fetch()) {
 			$cat_id = (int) $row['cat_id'];
 			$rv[] = $cat_id;
 
