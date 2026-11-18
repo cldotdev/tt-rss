@@ -40,6 +40,8 @@ const	Feeds = {
 		{threshold: [0, 1], root: document.querySelector("body")}
 	),
 	_counters_prev: [],
+	_counters_pending: null,
+	_counters_inflight: false,
 	// NOTE: this implementation is incomplete
 	// for general objects but good enough for counters
 	// http://adripofjavascript.com/blog/drips/object-equality-in-javascript.html
@@ -164,14 +166,46 @@ const	Feeds = {
 		this.reloadCurrent();
 	},
 	// null = get all data (also returns runtime info), [] would give empty response for specific type
+	// Single-flight: App.handleRpcJson drops replies whose seq is not the latest, so overlapping
+	// requests would lose the counters of the earlier ones. Requests made while one is in flight
+	// are merged and sent when it finishes.
 	requestCounters: function(feed_ids = null, label_ids = null) {
+		const pending = this._counters_pending;
+
+		if (pending) {
+			pending.feed_ids = pending.feed_ids && feed_ids ? [...new Set([...pending.feed_ids, ...feed_ids])] : null;
+			pending.label_ids = pending.label_ids && label_ids ? [...new Set([...pending.label_ids, ...label_ids])] : null;
+		} else {
+			this._counters_pending = {feed_ids: feed_ids, label_ids: label_ids};
+		}
+
+		if (!this._counters_inflight)
+			this._sendCounters();
+	},
+	_sendCounters: function() {
+		const {feed_ids, label_ids} = this._counters_pending;
+
+		this._counters_pending = null;
+		this._counters_inflight = true;
+
+		// a failed request's ids are not retried, the next full poll covers them
+		let released = false;
+		const release = () => {
+			if (released) return;
+			released = true;
+			this._counters_inflight = false;
+
+			if (this._counters_pending)
+				this._sendCounters();
+		};
+
 		xhr.json("backend.php", {op: "RPC",
 							method: "getAllCounters",
 							"feed_ids[]": feed_ids,
 							"feed_id_count": feed_ids ? feed_ids.length : -1,
 							"label_ids[]": label_ids,
 							"label_id_count": label_ids ? label_ids.length : -1,
-							seq: App.next_seq()});
+							seq: App.next_seq()}, release, release).catch(() => {});
 	},
 	reload: function() {
 		try {
