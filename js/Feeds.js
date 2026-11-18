@@ -41,7 +41,10 @@ const	Feeds = {
 	),
 	_counters_prev: [],
 	_counters_pending: null,
+	_counters_poll_ms: 60 * 1000,
 	_counters_inflight: false,
+	_counters_sent_at: 0,
+	_counters_token: 0,
 	// NOTE: this implementation is incomplete
 	// for general objects but good enough for counters
 	// http://adripofjavascript.com/blog/drips/object-equality-in-javascript.html
@@ -179,7 +182,9 @@ const	Feeds = {
 			this._counters_pending = {feed_ids: feed_ids, label_ids: label_ids};
 		}
 
-		if (!this._counters_inflight)
+		// xhr.json never settles if a reply handler or plugin hook throws, so treat a request
+		// outstanding for longer than a poll period as lost
+		if (!this._counters_inflight || Date.now() - this._counters_sent_at > this._counters_poll_ms)
 			this._sendCounters();
 	},
 	_sendCounters: function() {
@@ -187,12 +192,13 @@ const	Feeds = {
 
 		this._counters_pending = null;
 		this._counters_inflight = true;
+		this._counters_sent_at = Date.now();
 
 		// a failed request's ids are not retried, the next full poll covers them
-		let released = false;
+		// the token keeps a late callback of a request given up on from clearing a newer one
+		const token = ++this._counters_token;
 		const release = () => {
-			if (released) return;
-			released = true;
+			if (token !== this._counters_token || !this._counters_inflight) return;
 			this._counters_inflight = false;
 
 			if (this._counters_pending)
@@ -349,7 +355,7 @@ const	Feeds = {
 		} else {
 			setTimeout(() => {
 				this.requestCounters();
-				setInterval(() => { this.requestCounters(); }, 60 * 1000)
+				setInterval(() => { this.requestCounters(); }, this._counters_poll_ms)
 			}, 250);
 		}
 	},
