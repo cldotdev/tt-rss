@@ -235,7 +235,8 @@ const Article = {
 		} catch {
 		}
 
-		// the previous article's iframe may have held the focus when it was removed
+		// an iframe removed while it holds the focus leaves the window unfocused
+		// (document.hasFocus() is false) until an element takes the focus again
 		App.restoreFocus();
 	},
 	formatComments: function(hl) {

@@ -798,9 +798,8 @@ const App = {
       document.onkeydown = (event) => this.hotkeyHandler(event);
       document.onkeypress = (event) => this.hotkeyHandler(event);
 
-      // Cross-origin embeds can take focus on their own and Firefox does not block it. Removing a
-      // focused iframe fires no blur there, which leaves the focus on <body>. Either way the
-      // hotkeys above stop receiving key events.
+      // Cross-origin embeds can take focus on their own and Firefox does not block it, after
+      // which the hotkeys above stop receiving key events.
       window.addEventListener("blur", () => {
          setTimeout(() => {
             if (document.activeElement?.tagName == "IFRAME")
@@ -815,6 +814,13 @@ const App = {
             if (document.activeElement?.tagName == "IFRAME")
                this.restoreFocus();
          }, 250);
+
+         // load does not bubble. Embeds usually take focus shortly before it fires, so checking
+         // here is quicker than waiting for the poll.
+         document.addEventListener("load", (event) => {
+            if (event.target.tagName == "IFRAME" && document.activeElement?.tagName == "IFRAME")
+               this.restoreFocus();
+         }, true);
       }
 
       if (this.is_prefs) {
