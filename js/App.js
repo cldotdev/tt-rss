@@ -781,21 +781,30 @@ const App = {
          // handled by xhr.json()
       });
    },
+   // Give focus back to the page when it is lost to an iframe or to <body>, leave other elements alone.
+   restoreFocus: function() {
+      const active = document.activeElement;
+
+      if (active && active.tagName != "BODY" && active.tagName != "IFRAME")
+         return;
+
+      if (active?.tagName == "IFRAME")
+         active.blur();
+
+      document.getElementById("headlines-frame")?.focus({preventScroll: true});
+   },
    initSecondStage: function() {
 
       document.onkeydown = (event) => this.hotkeyHandler(event);
       document.onkeypress = (event) => this.hotkeyHandler(event);
 
-      // Cross-origin embeds can take focus on their own and Firefox does not block it,
-      // after which the hotkeys above no longer receive key events.
+      // Cross-origin embeds can take focus on their own and Firefox does not block it. Removing a
+      // focused iframe fires no blur there, which leaves the focus on <body>. Either way the
+      // hotkeys above stop receiving key events.
       window.addEventListener("blur", () => {
          setTimeout(() => {
-            const active = document.activeElement;
-
-            if (active && active.tagName == "IFRAME") {
-               active.blur();
-               window.focus();
-            }
+            if (document.activeElement?.tagName == "IFRAME")
+               this.restoreFocus();
          }, 0);
       });
 

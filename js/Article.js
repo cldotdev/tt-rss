@@ -234,6 +234,9 @@ const Article = {
 			c.focus();
 		} catch {
 		}
+
+		// the previous article's iframe may have held the focus when it was removed
+		App.restoreFocus();
 	},
 	formatComments: function(hl) {
 		let comments = "";
